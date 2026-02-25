@@ -1,0 +1,39 @@
+# Primetrade.ai - Trader Performance vs Market Sentiment
+# Pipeline Configuration
+
+paths:
+  data_dir: "data/raw"
+  processed_dir: "data/processed"
+  outputs_dir: "outputs"
+  figures_dir: "outputs/figures"
+  models_dir: "models"
+
+data:
+  fear_greed_url: "https://drive.google.com/uc?export=download&id=1PgQC0tO8XN-wqkNyghWc_-mnrYv_nhSf"
+  trader_url: "https://drive.google.com/uc?export=download&id=1IAfLZwu6rJzyWKgBToqwSmmVYU6VbjVs"
+  fear_greed_file: "fear_greed.csv"
+  trader_file: "trader_data.csv"
+  date_column: "date"
+  timestamp_ist_column: "Timestamp IST"
+  classification_column: "classification"
+
+features:
+  target_column: "profitability_bucket"  # For prediction: low/medium/high
+  numeric_features:
+    - daily_pnl
+    - win_rate
+    - avg_trade_size_usd
+    - num_trades
+    - leverage_proxy
+    - long_short_ratio
+  categorical_features:
+    - classification
+
+model:
+  random_state: 42
+  test_size: 0.2
+  cv_folds: 5
+  # Imbalanced data handling
+  imbalance_strategy: "smote"  # smote, class_weight, undersample
+  profitability_buckets: 2  # Binary: loss/profit (better results)
+  min_samples_per_class: 10

@@ -1,0 +1,2 @@
+id,name,rule,evidence
+S3,Leverage-Sentiment Rule,For high-leverage traders: reduce position sizes during Fear days. For low-leverage traders: opportunity to scale up selectively during Greed days if win rate is stable.,High vs low leverage segments react differently to sentiment.
