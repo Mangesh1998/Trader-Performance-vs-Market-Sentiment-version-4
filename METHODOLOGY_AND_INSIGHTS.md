@@ -85,7 +85,7 @@
 - ✅ **Do**: Wait for Greed sentiment or neutral days; higher edge clarity
 - 📊 **Monitor**: Why trades fail; optimize edge instead of adding leverage
 
-### For Quant Teams
+### For Quant Analysis
 
 1. **Ensemble Refinement**
    - Current RF achieves ~0.72 ROC-AUC; can improve via LightGBM + stacking
@@ -135,4 +135,4 @@
 ---
 
 *Report generated: February 26, 2026*  
-*Project: Trader Performance vs Market Sentiment (Primetrade.ai)*
+*Project: Trader Performance vs Market Sentiment*
