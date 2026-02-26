@@ -1,6 +1,6 @@
 # Methodology, Insights & Strategy Recommendations
 
-## 📋 Methodology
+##  Methodology
 
 ### Data Pipeline
 
@@ -28,7 +28,7 @@
 
 ---
 
-## 💡 Key Insights
+##  Key Insights
 
 ### 1. **Trader Behavior Varies Dramatically by Sentiment**
 - **Fear days** (bottom 20 percentile Fear Index): Traders reduce leverage by ~15%, trade frequency drops 20%
@@ -57,7 +57,7 @@
 
 ---
 
-## 🎯 Strategy Recommendations
+##  Strategy Recommendations
 
 ### For Risk Managers / Compliance
 
@@ -107,7 +107,7 @@
 
 ---
 
-## 📊 Summary Metrics
+##  Summary Metrics
 
 | Metric | Value | Interpretation |
 |--------|-------|---|
@@ -119,7 +119,7 @@
 
 ---
 
-## 🔮 Conclusion
+##  Conclusion
 
 **This model is production-ready for risk flagging**, not trade timing:
 - Use as a **daily risk filter** (flag high-loss-probability traders)
