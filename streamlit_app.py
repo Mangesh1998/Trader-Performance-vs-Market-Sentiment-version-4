@@ -19,7 +19,6 @@ OUTPUTS = BASE / "outputs"
 FIGURES = OUTPUTS / "figures"
 
 st.title("📈 Trader Performance vs Market Sentiment")
-st.markdown("**Primetrade.ai Data Science Intern Assignment**")
 
 # Sidebar
 st.sidebar.header("Navigation")
@@ -170,25 +169,66 @@ elif page == "Prediction":
 
             row = daily.loc[idx]
 
-            # Build feature vector
-            X_row = pd.DataFrame(index=[0])
+            # Build feature vector (either from selected record or manual inputs)
             # mapping for classification
             cls_map = {"Fear": 0.0, "Greed": 1.0, "Neutral": 0.5, "Unknown": 0.5}
-            for fn in feature_names:
-                if fn in daily.columns:
-                    val = row.get(fn)
-                    if fn == "classification":
-                        val = cls_map.get(str(val), 0.5)
-                    X_row.loc[0, fn] = val
-                else:
-                    # fill missing with median from daily
+
+            use_manual = st.checkbox("Enter custom feature values (manual input)")
+
+            if use_manual:
+                st.info("Provide values for the model features below. Leave as-is to use reasonable defaults.")
+                X_row = pd.DataFrame(index=[0])
+                for fn in feature_names:
+                    # if feature is present in daily metrics, try to infer type and default
                     if fn in daily.columns:
-                        X_row.loc[0, fn] = row.get(fn)
+                        col = daily[fn]
+                        try:
+                            if pd.api.types.is_numeric_dtype(col):
+                                default = float(col.median()) if not pd.isna(col.median()) else 0.0
+                                val = st.number_input(fn, value=default, step=0.01, format="%.6f")
+                            else:
+                                uniques = list(pd.Series(col.dropna().unique())[:20])
+                                if len(uniques) > 0 and len(uniques) <= 20:
+                                    val = st.selectbox(fn, options=uniques, index=0)
+                                else:
+                                    val = st.text_input(fn, value=str(uniques[0]) if uniques else "")
+                        except Exception:
+                            val = st.text_input(fn, value="")
                     else:
+                        # heuristic defaults for features not in daily
+                        if "class" in fn.lower() or "sentiment" in fn.lower():
+                            val = st.selectbox(fn, options=["Fear", "Neutral", "Greed", "Unknown"], index=1)
+                        else:
+                            val = st.number_input(fn, value=0.0, step=0.01, format="%.6f")
+
+                    # map classification-like values to numeric if needed
+                    if fn == "classification":
+                        X_row.loc[0, fn] = cls_map.get(str(val), 0.5)
+                    else:
+                        X_row.loc[0, fn] = val
+
+                # Ensure numeric where possible and fill missing
+                try:
+                    X_row = X_row.fillna(X_row.median(numeric_only=True)).astype(float)
+                except Exception:
+                    # coerce non-numeric to numeric where possible
+                    X_row = X_row.apply(pd.to_numeric, errors="coerce")
+                    X_row = X_row.fillna(X_row.median(numeric_only=True)).fillna(0.0)
+            else:
+                # Build from selected daily record
+                X_row = pd.DataFrame(index=[0])
+                for fn in feature_names:
+                    if fn in daily.columns:
+                        val = row.get(fn)
+                        if fn == "classification":
+                            val = cls_map.get(str(val), 0.5)
+                        X_row.loc[0, fn] = val
+                    else:
+                        # fallback: use median if available else 0
                         X_row.loc[0, fn] = daily[fn].median() if fn in daily.columns else 0
 
-            # Ensure numeric and fillna
-            X_row = X_row.fillna(X_row.median(numeric_only=True)).astype(float)
+                # Ensure numeric and fillna
+                X_row = X_row.fillna(X_row.median(numeric_only=True)).astype(float)
 
             # Scale and predict
             X_scaled = scaler.transform(X_row)
@@ -216,14 +256,24 @@ elif page == "Prediction":
             st.write(f"Predicted class (threshold {thresh:.2f}): **{pred_label_threshold}**")
             st.write(pd.DataFrame.from_dict(prob_map, orient="index", columns=["probability"]).sort_values("probability", ascending=False))
 
-            # Recommendation
+            # Map probability to profitability bucket and provide explicit strategy recommendation
             loss_prob = prob_map.get("loss", 0.0)
-            if loss_prob >= 0.5:
-                st.warning(f"High predicted probability of loss ({loss_prob:.2f}). Consider risk-reducing actions:")
-                st.markdown("- Reduce leverage and position size\n- Tighten stop-loss levels\n- Avoid adding to positions; consider hedging")
+            if loss_prob >= 0.75:
+                bucket = "Very Likely Loss"
+                st.error(f"{bucket} — predicted loss probability {loss_prob:.2f}")
+                st.markdown("**Recommended strategy (Very High Risk):**\n- Pause new entries and reduce existing exposure by 75%\n- Tighten stop-loss levels aggressively\n- Consider short/hedge instruments or shift to cash until risk subsides")
+            elif loss_prob >= 0.5:
+                bucket = "Likely Loss"
+                st.warning(f"{bucket} — predicted loss probability {loss_prob:.2f}")
+                st.markdown("**Recommended strategy (High Risk):**\n- Reduce leverage and position size\n- Move stop-loss closer; avoid pyramiding\n- Avoid initiating large directional positions")
+            elif loss_prob >= 0.3:
+                bucket = "Neutral"
+                st.info(f"{bucket} — predicted loss probability {loss_prob:.2f}")
+                st.markdown("**Recommended strategy (Cautious):**\n- Trade smaller sizes than usual\n- Use tighter risk controls and monitor top risk features\n- Prefer mean-reversion or hedged approaches")
             else:
-                st.success(f"Low predicted probability of loss ({loss_prob:.2f}). Consider measured scaling:")
-                st.markdown("- Consider small scale-ins, keep risk per trade limited, monitor top risk features")
+                bucket = "Likely Profit"
+                st.success(f"{bucket} — predicted loss probability {loss_prob:.2f}")
+                st.markdown("**Recommended strategy (Opportunistic):**\n- Consider measured scale-ins with strict risk limits\n- Maintain stop-loss discipline and monitor exposure\n- Favor high-conviction trades with clear exit plans")
 
             # Show top feature importances and the values for this row
             feimp = saved.get("feature_importances") or {}
